@@ -27,7 +27,7 @@ const Register = () => {
   const sendOtp = async () => {
     try {
       setError('')
-      await axios.post('/.Netlify/send-otp', {
+      await axios.post('/.netlify/functions/send-otp', {
         email: formData.email
       })
       setOtpSent(true)
@@ -39,7 +39,7 @@ const Register = () => {
 
   const verifyOtp = async () => {
     try {
-      const response = await axios.post('/.Netlify/verify-otp', {
+      const response = await axios.post('/.netlify/functions/verify-otp', {
         email: formData.email,
         otp
       })
