@@ -27,16 +27,19 @@ const Register = () => {
   const sendOtp = async () => {
     try {
       setError('')
-      await axios.post('http://localhost:5000/send-otp', { email: formData.email })
+      await axios.post('/.Netlify/send-otp', {
+        email: formData.email
+      })
       setOtpSent(true)
     } catch (err) {
+      console.error(err)
       setError('Failed to send OTP. Please try again.')
     }
   }
 
   const verifyOtp = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/verify-otp', {
+      const response = await axios.post('/.Netlify/verify-otp', {
         email: formData.email,
         otp
       })
@@ -47,7 +50,8 @@ const Register = () => {
       } else {
         setError('Invalid OTP')
       }
-    } catch {
+    } catch (err) {
+      console.error(err)
       setError('OTP verification failed')
     }
   }
@@ -58,7 +62,8 @@ const Register = () => {
       setLoading(true)
       await register(formData.name, formData.email, formData.password)
     } catch (err) {
-      setError(err.message)
+      console.error(err)
+      setError(err.message || 'Account creation failed')
     } finally {
       setLoading(false)
     }
@@ -209,10 +214,14 @@ const Register = () => {
 
         <button
           type="submit"
-          disabled={loading || otpSent && !otpVerified}
+          disabled={loading || (otpSent && !otpVerified)}
           className="btn btn-primary w-full"
         >
-          {loading ? 'Creating account...' : otpSent ? 'Verify OTP to complete' : 'Create account'}
+          {loading
+            ? 'Creating account...'
+            : otpSent
+            ? 'Verify OTP to complete'
+            : 'Create account'}
         </button>
       </form>
 
