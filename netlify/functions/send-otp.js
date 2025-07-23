@@ -1,3 +1,5 @@
+let otpStore = {}; // TEMPORARY memory storage
+
 import nodemailer from "nodemailer";
 
 export async function handler(event) {
@@ -5,13 +7,21 @@ export async function handler(event) {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  const { email, otp } = JSON.parse(event.body);
+  const { email } = JSON.parse(event.body);
+  if (!email) {
+    return { statusCode: 400, body: "Email required" };
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000);
+  const timestamp = Date.now();
+
+  otpStore[email] = { otp, timestamp };
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
       user: "mindjournal08@gmail.com",
-      pass: "vgkf pdyd xonp life", // App password
+      pass: "vgkf pdyd xonp life", // App Password
     },
   });
 
@@ -19,17 +29,17 @@ export async function handler(event) {
     from: "MindJournal <mindjournal08@gmail.com>",
     to: email,
     subject: "Your OTP for MindJournal",
-    html: `<p>Your OTP is <b>${otp}</b>. It is valid for 5 minutes.</p>`,
+    html: `<p>Your OTP is <strong>${otp}</strong>. It is valid for 5 minutes.</p>`,
   };
 
   try {
     await transporter.sendMail(mailOptions);
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: "OTP sent" }),
+      body: JSON.stringify({ message: "OTP sent successfully" }),
     };
   } catch (error) {
-    console.error("Email error:", error);
+    console.error("Send OTP error:", error);
     return {
       statusCode: 500,
       body: JSON.stringify({ message: "Failed to send OTP" }),

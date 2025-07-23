@@ -1,43 +1,33 @@
-// // netlify/functions/verify-otp.js
-// import { Low } from "lowdb";
-// import { JSONFile } from "lowdb/node";
+// This must use the same in-memory store
+import { otpStore } from './send-otp.js';
 
-// const adapter = new JSONFile("netlify/functions/db.json");
-// const db = new Low(adapter);
+export async function handler(event) {
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
 
-// export async function handler(event) {
-//   if (event.httpMethod !== "POST") {
-//     return { statusCode: 405, body: "Method Not Allowed" };
-//   }
+  const { email, otp: inputOtp } = JSON.parse(event.body);
+  if (!email || !inputOtp) {
+    return { statusCode: 400, body: "Email and OTP are required" };
+  }
 
-//   await db.read();
-//   db.data ||= { otps: [] };
+  const record = otpStore[email];
+  if (!record) {
+    return { statusCode: 400, body: "No OTP found for this email" };
+  }
 
-//   const { email, otp } = JSON.parse(event.body);
-//   const record = db.data.otps.find((entry) => entry.email === email);
+  const { otp, timestamp } = record;
+  const now = Date.now();
 
-//   if (record && parseInt(otp) === record.otp) {
-//     const now = Date.now();
-//     const isExpired = now - record.createdAt > 5 * 60 * 1000;
+  if (now - timestamp > 5 * 60 * 1000) {
+    delete otpStore[email];
+    return { statusCode: 400, body: "OTP expired" };
+  }
 
-//     if (isExpired) {
-//       return {
-//         statusCode: 400,
-//         body: JSON.stringify({ verified: false, message: "OTP expired" }),
-//       };
-//     }
+  if (String(otp) !== String(inputOtp)) {
+    return { statusCode: 400, body: "Invalid OTP" };
+  }
 
-//     db.data.otps = db.data.otps.filter((entry) => entry.email !== email); // Cleanup
-//     await db.write();
-
-//     return {
-//       statusCode: 200,
-//       body: JSON.stringify({ verified: true }),
-//     };
-//   } else {
-//     return {
-//       statusCode: 400,
-//       body: JSON.stringify({ verified: false, message: "Invalid OTP" }),
-//     };
-//   }
-// }
+  delete otpStore[email]; // Clean up
+  return { statusCode: 200, body: "OTP verified successfully" };
+}
